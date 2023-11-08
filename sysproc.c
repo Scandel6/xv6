@@ -31,9 +31,23 @@ sys_kill(void)
 {
   int pid;
 
+// Pone a 0 el lugar de memoria al que apunta pid
   if(argint(0, &pid) < 0)
     return -1;
   return kill(pid);
+}
+
+int
+sys_date(void)
+{
+  struct rtcdate *r;
+  // (void **) casting a tipo void**
+  if(argptr(0, (void **)&r, sizeof(struct rtcdate)) < 0)
+    return -1;
+
+  cmostime(r); // No puede fallar, rellena r con el tiempo del cmos
+
+  return 0;
 }
 
 int

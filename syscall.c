@@ -18,7 +18,7 @@ int
 fetchint(uint addr, int *ip)
 {
   struct proc *curproc = myproc();
-
+// compureba si se pasa del tamaño de la memoria actual del proceso
   if(addr >= curproc->sz || addr+4 > curproc->sz)
     return -1;
   *ip = *(int*)(addr);
@@ -49,6 +49,7 @@ fetchstr(uint addr, char **pp)
 int
 argint(int n, int *ip)
 {
+  // comprueba que el puntero es válido
   return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);
 }
 
@@ -103,8 +104,11 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_date(void);
 
+//syscalls es un array de punteros a funciones que no reciben nada y devuelven un entero
 static int (*syscalls[])(void) = {
+// fuerza la colocación en el array: [posicion_array] valor
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,
 [SYS_wait]    sys_wait,
@@ -126,6 +130,7 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_date]    sys_date,
 };
 
 void
@@ -134,12 +139,12 @@ syscall(void)
   int num;
   struct proc *curproc = myproc();
 
-  num = curproc->tf->eax;
+  num = curproc->tf->eax; // número de llamada al sistema
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
-    curproc->tf->eax = -1;
+    curproc->tf->eax = -1; //si falla la llamada al sistema
   }
 }
