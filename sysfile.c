@@ -21,6 +21,7 @@
 static int
 argfd(int n, int *pfd, struct file **pf)
 {
+  // Sirve para obtener el descriptor o el puntero del fichero al que apunta
   int fd;
   struct file *f;
 
@@ -59,12 +60,49 @@ sys_dup(void)
   struct file *f;
   int fd;
 
+// obtener solo el puntero
   if(argfd(0, 0, &f) < 0)
     return -1;
   if((fd=fdalloc(f)) < 0)
     return -1;
   filedup(f);
   return fd;
+}
+
+int
+sys_dup2(void)
+{
+  struct file *oldf, *newf;
+  int oldfd, newfd;
+  
+// obtener el puntero viejo con su descriptor 
+// y ve si está abierto.
+  if(argfd(0, &oldfd, &oldf) < 0)
+    return -1;
+
+// verifica si newfd está abierto, no se puede 
+// hacer argfd porque falla si el descriptor esta
+// cerrado
+  if(argint(1, &newfd) < 0)
+    return -1;
+
+  if(oldfd == newfd)
+    return newfd;
+
+  if(newfd < 0 || newfd >= NOFILE)
+    return -1;
+
+  // mira el ofile, donde están guardados los fd   
+  newf = myproc()->ofile[newfd];
+
+  // si el puntero no es 0 lo cerramos
+  if (newf)
+    fileclose(newf);
+
+  myproc()->ofile[newfd] = oldf;
+
+  filedup(oldf);
+  return newfd;
 }
 
 int

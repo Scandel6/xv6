@@ -23,8 +23,10 @@ extern int getpid(void);
 extern char* sbrk(int);
 extern int sleep(int);
 extern int uptime(void);
-//nuevo
+//ejercicio 1
 extern int date(struct rtcdate *);
+//ejercicio 2
+extern int dup2(int, int);
 
 // ulib.c
 extern int stat(const char*, struct stat*);
