@@ -38,18 +38,21 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde_t *pde;
   pte_t *pgtab;
 
-  pde = &pgdir[PDX(va)];
+  pde = &pgdir[PDX(va)]; // page directory entry 
   if(*pde & PTE_P){
-    pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
+    // si ya tiene un segundo nivel;
+    pgtab = (pte_t*)P2V(PTE_ADDR(*pde)); // tipo entrada de páginas
   } else {
+    // si no tienen segundo nivel:
     if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+    // si alloc != 0
       return 0;
     // Make sure all those PTE_P bits are zero.
-    memset(pgtab, 0, PGSIZE);
+    memset(pgtab, 0, PGSIZE); // rellenar de ceros el segundo nivel
     // The permissions here are overly generous, but they can
     // be further restricted by the permissions in the page table
     // entries, if necessary.
-    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+    *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U; // rellena la dirección del primer nivel
   }
   return &pgtab[PTX(va)];
 }
@@ -63,14 +66,15 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   char *a, *last;
   pte_t *pte;
 
-  a = (char*)PGROUNDDOWN((uint)va);
+  a = (char*)PGROUNDDOWN((uint)va); //redondea la página hacia abajo (va es el byte que piden mapear, no tiene por qué estar formateado al tamaño de las páginas)
   last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
+    // walkpgdir rellena la segunda tabla de páginas
   for(;;){
-    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+    if((pte = walkpgdir(pgdir, a, 1)) == 0) //pte es la dirección física de la página que quieres mapear, 1 es para crear tablas de páginas
       return -1;
-    if(*pte & PTE_P)
+    if(*pte & PTE_P) // comprueba si ya está mapeada (está presente)
       panic("remap");
-    *pte = pa | perm | PTE_P;
+    *pte = pa | perm | PTE_P; // dirección física | permisos | presente
     if(a == last)
       break;
     a += PGSIZE;
@@ -121,14 +125,15 @@ setupkvm(void)
   pde_t *pgdir;
   struct kmap *k;
 
-  if((pgdir = (pde_t*)kalloc()) == 0)
+  if((pgdir = (pde_t*)kalloc()) == 0) // pide CR3 para construir la tabla de páginas (dirección física)
     return 0;
   memset(pgdir, 0, PGSIZE);
-  if (P2V(PHYSTOP) > (void*)DEVSPACE)
+  if (P2V(PHYSTOP) > (void*)DEVSPACE) // se pasa de página física a virtual
     panic("PHYSTOP too high");
   for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
+  // Mientras tenga marcos físicos va llenando del kernel la parte superior del primer y segundo nivel de la memoria física
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
-                (uint)k->phys_start, k->perm) < 0) {
+                (uint)k->phys_start, k->perm) < 0) { 
       freevm(pgdir, 0);
       return 0;
     }

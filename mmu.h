@@ -87,8 +87,8 @@ struct segdesc {
 #define PTXSHIFT        12      // offset of PTX in a linear address
 #define PDXSHIFT        22      // offset of PDX in a linear address
 
-#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
-#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
+#define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1)) 
+#define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1)) // Se destruye el offset de la dirección virtual, para devolver la página (se hace and lógico con el inverso -1)
 
 // Page table/directory entry flags.
 #define PTE_P           0x001   // Present
