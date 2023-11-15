@@ -10,6 +10,7 @@
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
+//struct nodo  cola colas[10];
 } ptable;
 
 static struct proc *initproc;
