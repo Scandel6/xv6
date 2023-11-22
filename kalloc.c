@@ -56,6 +56,7 @@ freerange(void *vstart, void *vend)
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
+// Libera memoria en la parte alta del mapa de memoria
 void
 kfree(char *v)
 {
@@ -79,6 +80,10 @@ kfree(char *v)
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
+// Devuelve una dirección virtual
+// Reserva memoria en la parte baja del mapa de memoria
+// El mapa de memoria tiene forma de pila
+// Mirar pags 13-18 de boletin xv6-3
 char*
 kalloc(void)
 {
