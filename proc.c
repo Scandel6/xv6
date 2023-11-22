@@ -163,6 +163,7 @@ growproc(int n)
   struct proc *curproc = myproc();
 
   sz = curproc->sz;
+  // Modifica el tamaño de sz según sea n mayor o menor que 0
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
@@ -170,7 +171,11 @@ growproc(int n)
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       return -1;
   }
-  curproc->sz = sz;
+  curproc->sz = sz; // Nuevo tamaño del proceso
+  // Si se liberan páginas físicas, hay que invalidar el TLB para que 
+  // si en el programa ya ha liberado páginas físicas, a la hora de preguntar 
+  // direcciones virtuales, no acceder a páginas físicas guardadas en la TLB y
+  // que ahora están asignadas a otros procesos
   lcr3(V2P(curproc->pgdir));  // Invalidate TLB.
   return 0;
 }

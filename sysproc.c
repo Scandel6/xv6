@@ -56,17 +56,23 @@ sys_getpid(void)
   return myproc()->pid;
 }
 
+// Recibe un entero
 int
 sys_sbrk(void)
 {
   int addr;
   int n;
-
+// Cogemos un entero de la pila
   if(argint(0, &n) < 0)
     return -1;
-  addr = myproc()->sz;
-  if(growproc(n) < 0)
+// Guarda el valor de sz
+  addr = myproc()->sz += n;
+  if (n < 0 && growproc(n) < 0)
     return -1;
+
+// Aumente o disminuye el tamaño del proceso
+  // if(growproc(n) < 0)
+  //   return -1;
   return addr;
 }
 
