@@ -36,7 +36,7 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
-  if(tf->trapno == T_SYSCALL){
+  if(tf->trapno == T_SYSCALL){ // Si es una llamada al sistema hace syscall
     if(myproc()->killed)
       exit();
     myproc()->tf = tf;
@@ -90,7 +90,7 @@ trap(struct trapframe *tf)
     cprintf("pid %d %s: trap %d err %d on cpu %d "
             "eip 0x%x addr 0x%x--kill proc\n",
             myproc()->pid, myproc()->name, tf->trapno,
-            tf->err, cpuid(), tf->eip, rcr2());
+            tf->err, cpuid(), tf->eip, rcr2()); // rcr2() lee cr2 donde se guarda la dirección virtual del último error
     myproc()->killed = 1;
   }
 

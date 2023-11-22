@@ -69,7 +69,7 @@ sys_sbrk(void)
   addr = myproc()->sz += n;
   if (n < 0 && growproc(n) < 0)
     return -1;
-
+// Ahora sale un error, hay que solucionarlo en trap.c
 // Aumente o disminuye el tamaño del proceso
   // if(growproc(n) < 0)
   //   return -1;
