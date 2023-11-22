@@ -30,15 +30,18 @@ exec(char *path, char **argv)
   pgdir = 0;
 
   // Check ELF header
+  //Lee la ip , dirección del elf, desde 0 hasta el final 
   if(readi(ip, (char*)&elf, 0, sizeof(elf)) != sizeof(elf))
     goto bad;
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
+// Crea una nueva tabla de páginas
   if((pgdir = setupkvm()) == 0)
     goto bad;
 
   // Load program into memory.
+  // Lee cada una de las secciones de readelf
   sz = 0;
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
     if(readi(ip, (char*)&ph, off, sizeof(ph)) != sizeof(ph))
@@ -49,10 +52,14 @@ exec(char *path, char **argv)
       goto bad;
     if(ph.vaddr + ph.memsz < ph.vaddr)
       goto bad;
+    // En la memoria física allocuvm pide marcos libres 
+    // segun el tamaño del proceso
     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
       goto bad;
     if(ph.vaddr % PGSIZE != 0)
       goto bad;
+      // En esa misma tabla de páginas coge el inicio del programa
+      // Y carga el fichero en los marcos libres reservados previamente
     if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
   }
@@ -60,15 +67,28 @@ exec(char *path, char **argv)
   end_op();
   ip = 0;
 
-  // Allocate two pages at the next page boundary.
+  // Allocate two pages at the next page boundary. 
   // Make the first inaccessible.  Use the second as the user stack.
+
+  // Reserva memoria desde la posición actual y guarda 2 más
   sz = PGROUNDUP(sz);
   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
     goto bad;
+  // De la primera página de estas ultimas dos paginas y cambia el bit u = 0
+  // Para crear páginas de guarda para que no haya stack overflow
+  /*
+  | pila del programa |
+  | pagina de guarda u = 0  |
+  | ...
+  | páginas reservadas y almacenadas por allocuvm y loaduvm |
+  
+  */
+
   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
-  sp = sz;
+  sp = sz; // sp (puntero de pila) guarda el final del tamaño
 
   // Push argument strings, prepare rest of stack in ustack.
+  // Se guardan los parámetros de argv y argc en la pila
   for(argc = 0; argv[argc]; argc++) {
     if(argc >= MAXARG)
       goto bad;
@@ -79,6 +99,7 @@ exec(char *path, char **argv)
   }
   ustack[3+argc] = 0;
 
+// Como del main no se vuelve
   ustack[0] = 0xffffffff;  // fake return PC
   ustack[1] = argc;
   ustack[2] = sp - (argc+1)*4;  // argv pointer
@@ -99,9 +120,9 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
-  switchuvm(curproc);
-  freevm(oldpgdir, 1);
-  return 0;
+  switchuvm(curproc); // Cambia la tabla de páginas del proceso padre por la del proceso hijo
+  freevm(oldpgdir, 1); // Libera la página antigua y todos sus marcos físicos
+  return 0; // Salida del kernel
 
  bad:
   if(pgdir)
