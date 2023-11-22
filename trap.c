@@ -8,6 +8,9 @@
 #include "traps.h"
 #include "spinlock.h"
 
+int
+mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
+
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
@@ -76,6 +79,34 @@ trap(struct trapframe *tf)
     cprintf("cpu%d: spurious interrupt at %x:%x\n",
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
+    break;
+
+  case T_PGFLT: // caso 14
+
+    if(myproc() == 0){
+      // In kernel, it must be our mistake.
+      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
+              tf->trapno, cpuid(), tf->eip, rcr2());
+      panic("trap");
+    }
+
+  // uso similar a allocuvm en vm.c
+  // Añadir medidas de seguridad (mirar en vm.c)
+    char* mem;
+    mem = kalloc();
+    if(mem == 0){
+      cprintf("T_PGFLT out of memory\n");
+      myproc() ->killed = 1;
+    }
+    else
+    {
+      memset(mem, 0, PGSIZE);
+      if(mappages(myproc()->pgdir, (char*) PGROUNDDOWN(rcr2()), PGSIZE, V2P(mem), PTE_W|PTE_U) < 0){
+        cprintf("T_PGFLT mapping failed\n");
+        kfree(mem);
+        myproc()->killed = 1;
+      }
+    }
     break;
 
   //PAGEBREAK: 13
