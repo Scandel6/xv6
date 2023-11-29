@@ -342,24 +342,27 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock); // hay que capturar el lock porque hay varias cpus
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    // inicio del cambio
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){  // cambiar por un while que inicia siempre desde el principio
       if(p->state != RUNNABLE)
         continue; // cuando uno es runable lo procesa
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
+    // no cambiar
       c->proc = p;
       switchuvm(p); // cambia la tabla de páginas
       p->state = RUNNING;
 
       swtch(&(c->scheduler), p->context); // sale del planificador y cambia del contexto y libera el candado de la tabla de páginas, cuando vuelve hay que coger el candado de nuevo
       switchkvm(); // despierta tras el switch anterior, continua ejecutando el planificador sin un proceso
-
+    // no cambiar
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
     }
+    // fin del cambio
     // En caso de que esten todos los procesos bloqueados, se libera uno mismo y deja que otro proceso coja el candado
     release(&ptable.lock);
 
