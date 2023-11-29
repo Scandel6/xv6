@@ -150,6 +150,7 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  // añadir a la lista de procesos
 
   release(&ptable.lock);
 }
